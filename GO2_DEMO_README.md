@@ -18,7 +18,9 @@
 ./build.sh --clean
 ```
 
-## 运行
+## 安装
+
+### 方式一：直接运行（无需安装）
 
 ```bash
 ./build/bin/go2_motion_demo <网络接口>
@@ -27,6 +29,44 @@
 示例：
 ```bash
 ./build/bin/go2_motion_demo eth0
+```
+
+### 方式二：安装到系统目录
+
+安装到默认位置（/opt/unitree_go2）：
+
+```bash
+./install.sh
+```
+
+安装到指定位置：
+
+```bash
+./install.sh -p /usr/local
+```
+
+安装后运行：
+
+```bash
+/opt/unitree_go2/bin/go2_motion_demo eth0
+```
+
+或者（如果创建了符号链接）：
+
+```bash
+go2_motion_demo eth0
+```
+
+### 卸载
+
+```bash
+./uninstall.sh
+```
+
+或从指定位置卸载：
+
+```bash
+./uninstall.sh -p /usr/local
 ```
 
 ## 控制说明
@@ -108,6 +148,12 @@
 - 前进/后退速度：±0.3 m/s
 - 横向移动速度：±0.2 m/s
 - 转向角速度：±0.5 rad/s
+- 动作持续时间：
+  - 趴下动作：2.0 秒
+  - 坐下动作：2.0 秒
+  - 恢复站立：3.0 秒
+
+> **优化说明**：趴下、坐下等动作会持续发送命令一段时间，确保动作可靠执行完成。
 
 ## 故障排除
 

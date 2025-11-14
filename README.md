@@ -58,3 +58,63 @@ Note that if you install the library to other places other than `/opt/unitree_ro
 
 ### Notice
 For more reference information, please go to [Unitree Document Center](https://support.unitree.com/home/zh/developer).
+
+---
+
+## GO2 快速使用指南
+
+本项目已配置为仅编译 GO2 相关程序，并提供了便捷的编译和安装脚本。
+
+### 快速编译
+
+```bash
+./build.sh
+```
+
+清理后重新编译：
+
+```bash
+./build.sh --clean
+```
+
+### 直接运行
+
+编译完成后，可以直接运行程序：
+
+```bash
+./build/bin/go2_motion_demo eth0
+```
+
+### 安装到系统
+
+安装到默认位置（`/opt/unitree_go2`）：
+
+```bash
+./install.sh
+```
+
+安装到自定义位置：
+
+```bash
+./install.sh -p /usr/local
+```
+
+安装后运行：
+
+```bash
+/opt/unitree_go2/bin/go2_motion_demo eth0
+```
+
+### 卸载
+
+```bash
+./uninstall.sh
+```
+
+### GO2 Motion Demo
+
+交互式运动控制演示程序，支持：
+- 动作切换：站立、趴下、坐下、恢复站立、阻尼模式
+- 移动控制：前进/后退、左转/右转、左移/右移
+
+详细使用说明请查看：[GO2_DEMO_README.md](GO2_DEMO_README.md)
