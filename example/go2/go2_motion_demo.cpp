@@ -98,7 +98,7 @@ public:
     {
       std::cout << "【主菜单】" << std::endl;
       std::cout << "\n基础动作:" << std::endl;
-      std::cout << "  1 - 站立锁定" << std::endl;
+      std::cout << "  1 - 站立" << std::endl;
       std::cout << "  2 - 趴下" << std::endl;
       std::cout << "  3 - 坐下" << std::endl;
       std::cout << "  4 - 平衡站立" << std::endl;
@@ -109,6 +109,7 @@ public:
       std::cout << "     W" << std::endl;
       std::cout << "  A  S  D - 前进/左移/后退/右移" << std::endl;
       std::cout << "  Q/E - 左转/右转  X - 立即停止" << std::endl;
+      std::cout << "  ←/→ - 左转/右转（方向键）" << std::endl;
       std::cout << "\n菜单切换:" << std::endl;
       std::cout << "  m - 切换到【动作菜单】" << std::endl;
       std::cout << "  g - 切换到【步态菜单】" << std::endl;
@@ -168,7 +169,7 @@ public:
     switch(current_mode)
     {
       case MODE_IDLE: return "待机";
-      case MODE_STAND: return "站立锁定";
+      case MODE_STAND: return "站立";
       case MODE_STAND_DOWN: return "趴下中";
       case MODE_BALANCE_STAND: return "平衡站立";
       case MODE_WALK: return "行走";
@@ -233,7 +234,7 @@ public:
     {
       // Basic modes
       case MODE_STAND:
-        sport_client.StandUp();
+        sport_client.BalanceStand();
         break;
 
       case MODE_STAND_DOWN:
@@ -441,10 +442,10 @@ public:
   {
     switch(cmd)
     {
-      case '1':  // Stand Up (locked)
+      case '1':  // Stand (unlocked)
         current_mode = MODE_STAND;
         vx = vy = vyaw = 0.0;
-        std::cout << ">> 执行: 站立锁定" << std::endl;
+        std::cout << ">> 执行: 站立" << std::endl;
         break;
 
       case '2':  // Stand Down
@@ -496,6 +497,8 @@ public:
       case 'd':
       case 'q':
       case 'e':
+      case 'L':  // Left arrow
+      case 'R':  // Right arrow
         HandleMovementKey(cmd);
         break;
 
@@ -721,6 +724,8 @@ public:
       case 'd':
       case 'q':
       case 'e':
+      case 'L':  // Left arrow
+      case 'R':  // Right arrow
         HandleMovementKey(cmd);
         break;
 
@@ -784,10 +789,12 @@ public:
         if (is_new_press) std::cout << ">> 右移 (vy=-0.2)" << std::endl;
         break;
       case 'q':  // Turn left
+      case 'L':  // Left arrow key
         vx = 0.0; vy = 0.0; vyaw = 0.5;
         if (is_new_press) std::cout << ">> 左转 (vyaw=0.5)" << std::endl;
         break;
       case 'e':  // Turn right
+      case 'R':  // Right arrow key
         vx = 0.0; vy = 0.0; vyaw = -0.5;
         if (is_new_press) std::cout << ">> 右转 (vyaw=-0.5)" << std::endl;
         break;
@@ -827,6 +834,27 @@ public:
     {
       return 0;
     }
+    
+    // Check for arrow keys (escape sequences)
+    if (c == 27) // ESC
+    {
+      char seq[2];
+      if (read(0, &seq[0], 1) == 1 && seq[0] == '[')
+      {
+        if (read(0, &seq[1], 1) == 1)
+        {
+          switch(seq[1])
+          {
+            case 'A': return 'U'; // Up arrow -> 'U'
+            case 'B': return 'D'; // Down arrow -> 'D'
+            case 'C': return 'R'; // Right arrow -> 'R'
+            case 'D': return 'L'; // Left arrow -> 'L'
+          }
+        }
+      }
+      return 27; // Return ESC if not an arrow key
+    }
+    
     return c;
   }
 
