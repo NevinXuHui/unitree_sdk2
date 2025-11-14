@@ -77,6 +77,9 @@ public:
     action_duration = 0.0;
     pose_enabled = false;
     handstand_enabled = false;
+    last_move_key = 0;
+    key_press_time = 0.0;
+    move_stop_timer = 0.0;
     
     sport_client.SetTimeout(10.0f);
     sport_client.Init();
@@ -102,9 +105,10 @@ public:
       std::cout << "  5 - 恢复站立" << std::endl;
       std::cout << "  6 - 阻尼模式" << std::endl;
       std::cout << "  0 - 停止/待机" << std::endl;
-      std::cout << "\n移动控制:" << std::endl;
-      std::cout << "  w/s - 前进/后退  a/d - 左转/右转" << std::endl;
-      std::cout << "  q/e - 左移/右移  x - 停止移动" << std::endl;
+      std::cout << "\n移动控制（长按持续移动，松开自动停止）:" << std::endl;
+      std::cout << "     W" << std::endl;
+      std::cout << "  A  S  D - 前进/左移/后退/右移" << std::endl;
+      std::cout << "  Q/E - 左转/右转  X - 立即停止" << std::endl;
       std::cout << "\n菜单切换:" << std::endl;
       std::cout << "  m - 切换到【动作菜单】" << std::endl;
       std::cout << "  g - 切换到【步态菜单】" << std::endl;
@@ -211,6 +215,17 @@ public:
         action_timer = 0.0;
         action_duration = 0.0;
         std::cout << ">> 动作完成，切换到待机模式" << std::endl;
+      }
+    }
+
+    // Auto-stop movement after short press
+    if (move_stop_timer > 0.0)
+    {
+      move_stop_timer -= dt;
+      if (move_stop_timer <= 0.0)
+      {
+        vx = vy = vyaw = 0.0;
+        move_stop_timer = 0.0;
       }
     }
 
@@ -476,43 +491,18 @@ public:
 
       // Movement commands
       case 'w':
-        if (!IsMovableMode()) current_mode = MODE_WALK;
-        vx = 0.3; vy = 0.0;
-        std::cout << ">> 前进 (vx=0.3)" << std::endl;
-        break;
-
       case 's':
-        if (!IsMovableMode()) current_mode = MODE_WALK;
-        vx = -0.3; vy = 0.0;
-        std::cout << ">> 后退 (vx=-0.3)" << std::endl;
-        break;
-
       case 'a':
-        if (!IsMovableMode()) current_mode = MODE_WALK;
-        vyaw = 0.5;
-        std::cout << ">> 左转 (vyaw=0.5)" << std::endl;
-        break;
-
       case 'd':
-        if (!IsMovableMode()) current_mode = MODE_WALK;
-        vyaw = -0.5;
-        std::cout << ">> 右转 (vyaw=-0.5)" << std::endl;
-        break;
-
       case 'q':
-        if (!IsMovableMode()) current_mode = MODE_WALK;
-        vy = 0.2; vx = 0.0;
-        std::cout << ">> 左移 (vy=0.2)" << std::endl;
-        break;
-
       case 'e':
-        if (!IsMovableMode()) current_mode = MODE_WALK;
-        vy = -0.2; vx = 0.0;
-        std::cout << ">> 右移 (vy=-0.2)" << std::endl;
+        HandleMovementKey(cmd);
         break;
 
       case 'x':
         vx = vy = vyaw = 0.0;
+        move_stop_timer = 0.0;
+        last_move_key = 0;
         std::cout << ">> 停止移动" << std::endl;
         break;
 
@@ -726,37 +716,18 @@ public:
 
       // Movement commands (available in gait menu too)
       case 'w':
-        vx = 0.3; vy = 0.0;
-        std::cout << ">> 前进 (vx=0.3)" << std::endl;
-        break;
-
       case 's':
-        vx = -0.3; vy = 0.0;
-        std::cout << ">> 后退 (vx=-0.3)" << std::endl;
-        break;
-
       case 'a':
-        vyaw = 0.5;
-        std::cout << ">> 左转 (vyaw=0.5)" << std::endl;
-        break;
-
       case 'd':
-        vyaw = -0.5;
-        std::cout << ">> 右转 (vyaw=-0.5)" << std::endl;
-        break;
-
       case 'q':
-        vy = 0.2; vx = 0.0;
-        std::cout << ">> 左移 (vy=0.2)" << std::endl;
-        break;
-
       case 'e':
-        vy = -0.2; vx = 0.0;
-        std::cout << ">> 右移 (vy=-0.2)" << std::endl;
+        HandleMovementKey(cmd);
         break;
 
       case 'x':
         vx = vy = vyaw = 0.0;
+        move_stop_timer = 0.0;
+        last_move_key = 0;
         std::cout << ">> 停止移动" << std::endl;
         break;
 
@@ -773,6 +744,57 @@ public:
            current_mode == MODE_FREE_BOUND || current_mode == MODE_FREE_JUMP ||
            current_mode == MODE_FREE_AVOID || current_mode == MODE_HAND_STAND ||
            current_mode == MODE_WALK_UPRIGHT || current_mode == MODE_CROSS_STEP;
+  }
+
+  void HandleMovementKey(char key)
+  {
+    // Check if this is a key press (new key) or key repeat (same key)
+    bool is_new_press = (last_move_key != key);
+    
+    if (is_new_press)
+    {
+      // New key pressed
+      last_move_key = key;
+      key_press_time = 0.0;
+      
+      // Switch to movable mode if not already
+      if (!IsMovableMode())
+      {
+        current_mode = MODE_WALK;
+      }
+    }
+    
+    // Set movement based on key (AWDS layout)
+    switch(key)
+    {
+      case 'w':  // Forward
+        vx = 0.3; vy = 0.0; vyaw = 0.0;
+        if (is_new_press) std::cout << ">> 前进 (vx=0.3)" << std::endl;
+        break;
+      case 'a':  // Left strafe
+        vx = 0.0; vy = 0.2; vyaw = 0.0;
+        if (is_new_press) std::cout << ">> 左移 (vy=0.2)" << std::endl;
+        break;
+      case 's':  // Backward
+        vx = -0.3; vy = 0.0; vyaw = 0.0;
+        if (is_new_press) std::cout << ">> 后退 (vx=-0.3)" << std::endl;
+        break;
+      case 'd':  // Right strafe
+        vx = 0.0; vy = -0.2; vyaw = 0.0;
+        if (is_new_press) std::cout << ">> 右移 (vy=-0.2)" << std::endl;
+        break;
+      case 'q':  // Turn left
+        vx = 0.0; vy = 0.0; vyaw = 0.5;
+        if (is_new_press) std::cout << ">> 左转 (vyaw=0.5)" << std::endl;
+        break;
+      case 'e':  // Turn right
+        vx = 0.0; vy = 0.0; vyaw = -0.5;
+        if (is_new_press) std::cout << ">> 右转 (vyaw=-0.5)" << std::endl;
+        break;
+    }
+    
+    // Reset auto-stop timer (for continuous movement while key is held)
+    move_stop_timer = 0.5;  // Auto-stop after 0.5 seconds of no key press
   }
 
   void HighStateHandler(const void *message)
@@ -841,6 +863,9 @@ public:
   double action_duration;
   bool pose_enabled;
   bool handstand_enabled;
+  char last_move_key;
+  double key_press_time;
+  double move_stop_timer;
   float dt = 0.005;
   bool running = true;
   struct termios initial_settings;
