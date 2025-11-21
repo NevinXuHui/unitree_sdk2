@@ -3,7 +3,7 @@
 # add_subdirectory(jsonize)
 # add_subdirectory(state_machine)
 
-
+add_subdirectory(lowcmd_test)
 add_subdirectory(go2)
 # add_subdirectory(b2)
 # add_subdirectory(h1)
