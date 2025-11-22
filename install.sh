@@ -3,6 +3,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ARCH=$(uname -m)
 BUILD_DIR="${SCRIPT_DIR}/build"
 INSTALL_PREFIX="/opt/unitree_go2"
 
@@ -44,6 +45,16 @@ done
 echo "========================================"
 echo "GO2 程序安装脚本"
 echo "========================================"
+echo "系统架构: ${ARCH}"
+
+# 显示构建目录信息
+if [ -L "${BUILD_DIR}" ]; then
+    BUILD_TARGET=$(readlink "${BUILD_DIR}")
+    echo "构建目录: ${BUILD_DIR} -> ${BUILD_TARGET}"
+else
+    echo "构建目录: ${BUILD_DIR}"
+fi
+
 echo "安装路径: ${INSTALL_PREFIX}"
 echo "========================================"
 

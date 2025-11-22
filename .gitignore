@@ -3,6 +3,7 @@
 
 # cpp
 build
+build_*/
 
 #cland
 .cache
@@ -10,3 +11,5 @@ build
 
 .history
 .lh
+
+.windsurf

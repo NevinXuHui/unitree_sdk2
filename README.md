@@ -65,10 +65,21 @@ For more reference information, please go to [Unitree Document Center](https://s
 
 本项目已配置为仅编译 GO2 相关程序，并提供了便捷的编译和安装脚本。
 
+### 多架构支持
+
+编译脚本自动检测系统架构，不同架构的编译产物保存在独立目录：
+- **x86_64**: `build_x86_64/`
+- **aarch64**: `build_aarch64/`
+- **build/**: 软链接指向当前架构
+
+详细说明请查看：[架构支持说明.md](架构支持说明.md)
+
 ### 快速编译
 
 ```bash
 ./build.sh
+# 编译产物：build_<架构名>/
+# 软链接：build -> build_<架构名>
 ```
 
 清理后重新编译：

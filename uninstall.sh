@@ -2,6 +2,7 @@
 
 set -e
 
+ARCH=$(uname -m)
 INSTALL_PREFIX="/opt/unitree_go2"
 
 print_usage() {
@@ -42,6 +43,7 @@ done
 echo "========================================"
 echo "GO2 程序卸载脚本"
 echo "========================================"
+echo "系统架构: ${ARCH}"
 echo "安装路径: ${INSTALL_PREFIX}"
 echo "========================================"
 

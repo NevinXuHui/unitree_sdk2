@@ -3,7 +3,8 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BUILD_DIR="${SCRIPT_DIR}/build"
+ARCH=$(uname -m)
+BUILD_DIR="${SCRIPT_DIR}/build_${ARCH}"
 BUILD_TYPE="Release"
 CLEAN_BUILD=0
 JOBS=$(nproc)
@@ -19,6 +20,12 @@ OPTIONS:
     -c, --clean         清理构建目录后重新编译
     -d, --debug         使用 Debug 模式编译 (默认: Release)
     -j, --jobs N        并行编译任务数 (默认: $(nproc))
+
+架构支持:
+    自动检测系统架构并编译到独立目录
+    - x86_64:  build_x86_64/
+    - aarch64: build_aarch64/
+    - build/ 软链接指向当前架构
 
 示例:
     $0                  # 编译 go2 示例程序
@@ -57,6 +64,7 @@ done
 echo "========================================"
 echo "unitree_sdk2 编译脚本 (GO2)"
 echo "========================================"
+echo "系统架构: ${ARCH}"
 echo "构建目录: ${BUILD_DIR}"
 echo "构建类型: ${BUILD_TYPE}"
 echo "并行任务: ${JOBS}"
@@ -102,6 +110,13 @@ if [ ! -d "${BUILD_DIR}" ]; then
     mkdir -p "${BUILD_DIR}"
 fi
 
+# 创建 build 软链接指向当前架构的构建目录
+if [ ! -L "${SCRIPT_DIR}/build" ] || [ "$(readlink -f "${SCRIPT_DIR}/build")" != "${BUILD_DIR}" ]; then
+    echo "创建软链接: build -> build_${ARCH}"
+    rm -rf "${SCRIPT_DIR}/build"
+    ln -sf "build_${ARCH}" "${SCRIPT_DIR}/build"
+fi
+
 cd "${BUILD_DIR}"
 
 echo ""
@@ -114,9 +129,10 @@ make -j${JOBS}
 
 echo ""
 echo "========================================"
-echo "编译成功!"
+echo "编译成功! (${ARCH})"
 echo "========================================"
 echo "示例程序位于: ${BUILD_DIR}/bin"
+echo "软链接: build -> build_${ARCH}"
 echo ""
 echo "【GO2 机器人示例】"
 echo "  - go2_motion_demo (推荐: 交互式移动和动作控制)"
