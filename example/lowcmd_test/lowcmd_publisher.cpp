@@ -2,7 +2,9 @@
 #include <unitree/common/time/time_tool.hpp>
 #include <unitree/idl/hg/LowCmd_.hpp>
 #include <iostream>
+#include <iomanip>
 #include <cmath>
+#include <ctime>
 
 #define TOPIC "rt/lowcmd"
 
@@ -43,10 +45,16 @@ int main(int argc, char** argv)
     publisher.InitChannel();
 
     std::cout << "开始发布 LowCmd 消息..." << std::endl;
+    std::cout << "消息频率: 100 Hz (每 10ms 一条)" << std::endl;
+    std::cout << "========================================" << std::endl << std::endl;
     
-    int count = 0;
+    uint32_t seq_num = 0;
+    int64_t start_time = GetCurrentTimeMillisecond();
+    int64_t last_report_time = start_time;
     while (true)
     {
+        int64_t send_time = GetCurrentTimeMillisecond();
+        
         // 创建 LowCmd 消息
         LowCmd_ msg;
         
@@ -56,7 +64,7 @@ int main(int argc, char** argv)
         
         // 设置电机指令 (示例: 设置前几个关节的目标位置)
         // 这里使用正弦波作为示例，实际应用中应该根据需求设置
-        float time = count * 0.01f;  // 假设循环周期为 10ms
+        float time = seq_num * 0.01f;  // 假设循环周期为 10ms
         
         for (size_t i = 0; i < 35; i++)
         {
@@ -83,16 +91,40 @@ int main(int argc, char** argv)
             motor.reserve(0);
         }
         
-        // 设置 CRC (实际应用中应该计算真实的 CRC 值)
-        msg.crc(0);
+        // 使用 crc 字段存储序列号（仅用于测试）
+        msg.crc(seq_num);
         
         // 发布消息
         publisher.Write(msg);
         
-        count++;
-        if (count % 100 == 0)
+        // 每10条打印一次发送时间
+        if (seq_num % 10 == 0)
         {
-            std::cout << "已发布 " << count << " 条消息" << std::endl;
+            double elapsed_sec = (send_time - start_time) / 1000.0;
+            time_t now_sec = send_time / 1000;
+            int ms = send_time % 1000;
+            struct tm* timeinfo = localtime(&now_sec);
+            char time_buf[32];
+            strftime(time_buf, sizeof(time_buf), "%H:%M:%S", timeinfo);
+            
+            std::cout << "[发送] #" << std::setw(6) << seq_num 
+                      << " | 时间: " << time_buf << "." << std::setfill('0') << std::setw(3) << ms << std::setfill(' ')
+                      << " | 相对: " << std::fixed << std::setprecision(3) << elapsed_sec << "s" << std::endl;
+        }
+        
+        seq_num++;
+        
+        // 每秒统计一次
+        int64_t current_time = GetCurrentTimeMillisecond();
+        if (current_time - last_report_time >= 1000)
+        {
+            int64_t elapsed = current_time - start_time;
+            double rate = (seq_num * 1000.0) / elapsed;
+            std::cout << std::fixed << std::setprecision(1);
+            std::cout << "\n[统计] 已发送: " << seq_num << " 条"
+                      << " | 运行时间: " << (elapsed / 1000.0) << " s"
+                      << " | 发送速率: " << rate << " Hz\n" << std::endl;
+            last_report_time = current_time;
         }
         
         // 休眠 10ms (100Hz)

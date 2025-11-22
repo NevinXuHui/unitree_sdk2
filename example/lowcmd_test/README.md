@@ -34,10 +34,19 @@ cd example/lowcmd_test
 # 方法 1：使用测试脚本（推荐）
 ./run_test.sh
 
-# 方法 2：手动运行
+# 方法 2：测试日志和丢包率功能
+./test_logging.sh
+
+# 方法 3：手动运行
 终端1: ../../build/bin/lowcmd_subscriber
 终端2: ../../build/bin/lowcmd_publisher
 ```
+
+**新功能：日志和统计**
+- ✅ 发送/接收时间戳
+- ✅ 消息序列号跟踪
+- ✅ 丢包率实时统计
+- ✅ 发送/接收速率监控
 
 ---
 
