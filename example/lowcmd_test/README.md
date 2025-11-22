@@ -130,6 +130,42 @@ ifconfig
    - 添加安全保护机制
 3. 当前示例中的正弦波控制仅用于演示数据发布，实际应用需要根据机器人运动规划设置合适的控制指令
 
+### ⚠️ 网络接口参数已知问题
+
+**问题**：即使发布者和订阅者指定不同的网络接口，它们在同一台机器上仍然可以通信。
+
+**根本原因**：这是 DDS（数据分发服务）的设计特性：
+1. **共享内存传输**：DDS 检测到进程在同一台机器时，会自动使用共享内存通信，完全绕过网络接口
+2. **Localhost 优化**：即使禁用共享内存，DDS 也会通过 localhost (127.0.0.1) 通信
+3. **性能优化**：这是为了在本地进程间提供最快的通信性能
+
+**结论**：在同一台机器上**无法通过网络接口实现真正的隔离**。要测试网络接口隔离，需要使用不同的机器或容器。
+
+此外，SDK 的 `ChannelFactory::Init()` 函数也可能没有正确将网络接口参数应用到 DDS 配置中。
+
+**临时解决方案**：使用提供的辅助脚本或手动配置环境变量：
+
+#### 方法 1：使用辅助脚本（推荐）
+
+```bash
+# 终端 1：启动订阅者
+./example/lowcmd_test/run_with_network_interface.sh wwan0 subscriber
+
+# 终端 2：启动发布者
+./example/lowcmd_test/run_with_network_interface.sh wwan0 publisher
+```
+
+#### 方法 2：手动设置环境变量
+
+```bash
+# 绑定到特定网络接口（如 wwan0）
+export CYCLONEDDS_URI='<CycloneDDS><Domain><General><Interfaces><NetworkInterface name="wwan0"/></Interfaces></General></Domain></CycloneDDS>'
+./build/bin/lowcmd_publisher
+./build/bin/lowcmd_subscriber
+```
+
+详细信息请参考：[network_interface_issue.md](network_interface_issue.md)
+
 ## 扩展建议
 
 1. **添加 CRC 校验**: 实现真实的 CRC 计算函数
