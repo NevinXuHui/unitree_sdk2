@@ -35,10 +35,10 @@ BIN_DIR="$SDK_ROOT/build/bin"
 
 # 配置 CycloneDDS 使用指定的网络接口
 # 注意：
-# 1. 保持组播开启（multicast=true），DDS 需要组播进行节点发现
+# 1. AllowMulticast=spdp: 仅在 SPDP（服务发现）中使用组播，数据传输使用单播
 # 2. 在同一台机器上，DDS 会自动使用共享内存或 localhost 进行通信
 # 3. 网络接口配置主要影响跨机器通信
-export CYCLONEDDS_URI="<CycloneDDS><Domain><General><Interfaces><NetworkInterface name=\"$NETWORK_INTERFACE\" priority=\"default\" multicast=\"true\"/></Interfaces></General></Domain></CycloneDDS>"
+export CYCLONEDDS_URI="<CycloneDDS><Domain><General><AllowMulticast>spdp</AllowMulticast><Interfaces><NetworkInterface name=\"$NETWORK_INTERFACE\" priority=\"default\" multicast=\"default\"/></Interfaces></General></Domain></CycloneDDS>"
 
 echo "========================================"
 echo "LowCmd 测试程序 - 网络接口配置"
