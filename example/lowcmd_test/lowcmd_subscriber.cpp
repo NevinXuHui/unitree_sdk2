@@ -59,16 +59,34 @@ void Handler(const void* msg)
     std::cout << "========================================" << std::endl << std::endl;
 }
 
-int main()
+int main(int argc, char** argv)
 {
+    // 解析命令行参数
+    std::string network_interface = "";
+    if (argc > 1)
+    {
+        network_interface = argv[1];
+    }
+
     std::cout << "====================================" << std::endl;
     std::cout << "LowCmd 订阅者测试程序" << std::endl;
     std::cout << "话题: " << TOPIC << std::endl;
+    if (!network_interface.empty())
+    {
+        std::cout << "网络接口: " << network_interface << std::endl;
+    }
+    else
+    {
+        std::cout << "网络接口: 默认 (所有接口)" << std::endl;
+    }
+    std::cout << "====================================" << std::endl;
+    std::cout << "用法: " << argv[0] << " [network_interface]" << std::endl;
+    std::cout << "示例: " << argv[0] << " eth0" << std::endl;
     std::cout << "====================================" << std::endl;
     std::cout << "等待消息..." << std::endl << std::endl;
 
     // 初始化通道工厂
-    ChannelFactory::Instance()->Init(0);
+    ChannelFactory::Instance()->Init(0, network_interface);
     
     // 创建订阅者并注册回调函数
     ChannelSubscriber<LowCmd_> subscriber(TOPIC);

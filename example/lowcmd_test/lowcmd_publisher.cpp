@@ -10,15 +10,33 @@ using namespace unitree::robot;
 using namespace unitree::common;
 using namespace unitree_hg::msg::dds_;
 
-int main()
+int main(int argc, char** argv)
 {
+    // 解析命令行参数
+    std::string network_interface = "";
+    if (argc > 1)
+    {
+        network_interface = argv[1];
+    }
+
     std::cout << "====================================" << std::endl;
     std::cout << "LowCmd 发布者测试程序" << std::endl;
     std::cout << "话题: " << TOPIC << std::endl;
+    if (!network_interface.empty())
+    {
+        std::cout << "网络接口: " << network_interface << std::endl;
+    }
+    else
+    {
+        std::cout << "网络接口: 默认 (所有接口)" << std::endl;
+    }
+    std::cout << "====================================" << std::endl;
+    std::cout << "用法: " << argv[0] << " [network_interface]" << std::endl;
+    std::cout << "示例: " << argv[0] << " eth0" << std::endl;
     std::cout << "====================================" << std::endl;
 
     // 初始化通道工厂
-    ChannelFactory::Instance()->Init(0);
+    ChannelFactory::Instance()->Init(0, network_interface);
     
     // 创建发布者
     ChannelPublisher<LowCmd_> publisher(TOPIC);

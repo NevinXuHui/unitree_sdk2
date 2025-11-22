@@ -49,21 +49,53 @@ struct MotorCmd_ {
 
 ## 使用方法
 
-### 1. 启动订阅者（终端 1）
+### 命令行参数
+
+两个程序都支持可选的网络接口参数：
 
 ```bash
+./build/bin/lowcmd_publisher [network_interface]
+./build/bin/lowcmd_subscriber [network_interface]
+```
+
+- **network_interface**: 可选参数，指定使用的网络接口（如 `eth0`, `enp3s0` 等）
+- 如果不指定，将使用所有可用网络接口（默认行为）
+
+### 1. 启动订阅者（终端 1）
+
+使用默认网络接口：
+```bash
 ./build/bin/lowcmd_subscriber
+```
+
+或指定特定网络接口：
+```bash
+./build/bin/lowcmd_subscriber eth0
 ```
 
 订阅者将等待并接收 `rt/lowcmd` 话题的消息，并打印接收到的控制指令。
 
 ### 2. 启动发布者（终端 2）
 
+使用默认网络接口：
 ```bash
 ./build/bin/lowcmd_publisher
 ```
 
+或指定特定网络接口（需要与订阅者使用相同的网络接口）：
+```bash
+./build/bin/lowcmd_publisher eth0
+```
+
 发布者将以 100Hz 的频率发布 LowCmd 消息，前 10 个关节使用正弦波作为目标位置示例。
+
+### 3. 查看可用网络接口
+
+```bash
+ip addr show
+# 或
+ifconfig
+```
 
 ## 程序说明
 
