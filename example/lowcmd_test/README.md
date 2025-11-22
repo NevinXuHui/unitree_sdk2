@@ -1,224 +1,334 @@
-# LowCmd 发布订阅测试程序
+# LowCmd 测试程序使用指南
 
-## 简介
+> 💡 **提示：** 首次使用请先查看 [目录结构说明](STRUCTURE.md)
 
-这是一个用于测试 `rt/lowcmd` 话题发布和订阅的示例程序。该话题用于控制 Unitree G1 人形机器人的全身关节电机。
+## 📖 目录
 
-## 消息类型
+- [快速开始](#快速开始)
+- [跨机器通信](#跨机器通信)
+- [脚本说明](#脚本说明)
+- [故障排查](#故障排查)
+- [详细文档](#详细文档)
 
-- **话题名称**: `rt/lowcmd`
-- **消息类型**: `unitree_hg::msg::dds_::LowCmd_`
+## 📂 相关文档
 
-### LowCmd_ 结构体
+- **[STRUCTURE.md](STRUCTURE.md)** - 目录结构和文件说明
+- **[docs/INDEX.md](docs/INDEX.md)** - 完整文档索引
 
-```cpp
-struct LowCmd_ {
-  uint8_t mode_pr;                                      // 并联机构（脚踝和腰部）控制模式 (默认 0) 0:PR, 1:AB
-  uint8_t mode_machine;                                 // G1 型号：4：23-DOF；5：29-DOF；6:27DOF(29DOF-锁腰)
-  std::array<MotorCmd_, 35> motor_cmd;                  // 身体所有电机控制指令
-  std::array<uint32_t, 4> reserve;                      // 保留
-  uint32_t crc;                                         // 校验和
-};
-```
+---
 
-### MotorCmd_ 结构体
+## 🚀 快速开始
 
-```cpp
-struct MotorCmd_ {
-  uint8_t mode;      // 控制模式
-  float q;           // 目标位置 (rad)
-  float dq;          // 目标速度 (rad/s)
-  float tau;         // 前馈力矩 (N·m)
-  float kp;          // 位置增益
-  float kd;          // 速度增益
-  uint32_t reserve;  // 保留
-};
-```
-
-## 编译
-
-在 SDK 根目录执行：
+### 1. 编译程序
 
 ```bash
+cd /mine/Code/unitree/unitree_sdk2
 ./build.sh
 ```
 
-编译成功后，可执行文件位于 `build/bin/` 目录：
-- `lowcmd_publisher` - 发布者
-- `lowcmd_subscriber` - 订阅者
-
-## 使用方法
-
-### 命令行参数
-
-两个程序都支持可选的网络接口参数：
+### 2. 同一台机器测试
 
 ```bash
-./build/bin/lowcmd_publisher [network_interface]
-./build/bin/lowcmd_subscriber [network_interface]
+cd example/lowcmd_test
+
+# 方法 1：使用测试脚本（推荐）
+./run_test.sh
+
+# 方法 2：手动运行
+终端1: ../../build/bin/lowcmd_subscriber
+终端2: ../../build/bin/lowcmd_publisher
 ```
 
-- **network_interface**: 可选参数，指定使用的网络接口（如 `eth0`, `enp3s0` 等）
-- 如果不指定，将使用所有可用网络接口（默认行为）
+---
 
-### 1. 启动订阅者（终端 1）
+## 🌐 跨机器通信
 
-使用默认网络接口：
-```bash
-./build/bin/lowcmd_subscriber
-```
+### 前提条件
 
-或指定特定网络接口：
-```bash
-./build/bin/lowcmd_subscriber eth0
-```
+- ✅ 两台机器在同一个局域网
+- ✅ 能互相 ping 通
+- ✅ 两台都配置防火墙
 
-订阅者将等待并接收 `rt/lowcmd` 话题的消息，并打印接收到的控制指令。
+### 配置步骤
 
-### 2. 启动发布者（终端 2）
-
-使用默认网络接口：
-```bash
-./build/bin/lowcmd_publisher
-```
-
-或指定特定网络接口（需要与订阅者使用相同的网络接口）：
-```bash
-./build/bin/lowcmd_publisher eth0
-```
-
-发布者将以 100Hz 的频率发布 LowCmd 消息，前 10 个关节使用正弦波作为目标位置示例。
-
-### 3. 查看可用网络接口
+#### 步骤 1：两台机器都配置防火墙
 
 ```bash
-ip addr show
-# 或
-ifconfig
-```
-
-## 程序说明
-
-### 发布者 (lowcmd_publisher.cpp)
-
-- 以 100Hz 频率发布 LowCmd 消息
-- 设置控制模式：`mode_pr=0` (PR模式)，`mode_machine=5` (29-DOF)
-- 前 10 个关节使用位置控制模式，目标位置为正弦波（仅作演示）
-- 其他关节设为待机模式
-
-**关键参数：**
-- `mode = 10`: 位置控制模式
-- `kp = 20.0`: 位置增益
-- `kd = 0.5`: 速度增益
-
-### 订阅者 (lowcmd_subscriber.cpp)
-
-- 订阅 `rt/lowcmd` 话题
-- 接收到消息后打印详细信息：
-  - 控制模式参数
-  - 前 10 个电机的控制指令
-  - 激活的电机数量统计
-
-## 🔥 局域网通信问题（防火墙配置）
-
-### 问题：局域网无法通信
-
-如果在不同机器间运行程序无法通信，**最常见的原因是防火墙阻止了 DDS 通信**。
-
-### 快速解决方案
-
-**方法 1：使用自动配置脚本（推荐）**
-
-```bash
-# 运行防火墙配置脚本，自动开放 DDS 端口
+# 在机器 A 和机器 B 上都执行
+cd /mine/Code/unitree/unitree_sdk2/example/lowcmd_test
 sudo ./setup_firewall.sh
 ```
 
-**方法 2：手动配置防火墙**
+#### 步骤 2：启动订阅者（机器 A）
 
 ```bash
-# Ubuntu/Debian (UFW)
-sudo ufw allow 7400:7419/udp
-
-# CentOS/RHEL (firewalld)
-sudo firewall-cmd --permanent --add-port=7400-7419/udp
-sudo firewall-cmd --reload
+./run_with_network_interface.sh wlp2s0 subscriber
 ```
 
-**方法 3：诊断网络问题**
+#### 步骤 3：启动发布者（机器 B）
 
 ```bash
-# 运行网络诊断脚本
-sudo ./check_network.sh
+./run_with_network_interface.sh wlp2s0 publisher
 ```
 
-### DDS 通信端口
+### 网络接口选择
 
-- **UDP 端口范围**：7400-7419
-- **默认发现端口**：7410
-- **组播地址**：239.255.0.1
-
-详细解决方案请查看：**[局域网通信问题解决方案.md](./局域网通信问题解决方案.md)**
-
-## 注意事项
-
-⚠️ **警告**: 
-1. 这是一个**测试程序**，不应该直接用于控制真实机器人
-2. 在真实机器人上使用前，请务必：
-   - 理解每个参数的含义
-   - 设置合理的控制参数
-   - 实现正确的 CRC 校验
-   - 添加安全保护机制
-3. 当前示例中的正弦波控制仅用于演示数据发布，实际应用需要根据机器人运动规划设置合适的控制指令
-
-### ⚠️ 网络接口参数已知问题
-
-**问题**：即使发布者和订阅者指定不同的网络接口，它们在同一台机器上仍然可以通信。
-
-**根本原因**：这是 DDS（数据分发服务）的设计特性：
-1. **共享内存传输**：DDS 检测到进程在同一台机器时，会自动使用共享内存通信，完全绕过网络接口
-2. **Localhost 优化**：即使禁用共享内存，DDS 也会通过 localhost (127.0.0.1) 通信
-3. **性能优化**：这是为了在本地进程间提供最快的通信性能
-
-**结论**：在同一台机器上**无法通过网络接口实现真正的隔离**。要测试网络接口隔离，需要使用不同的机器或容器。
-
-此外，SDK 的 `ChannelFactory::Init()` 函数也可能没有正确将网络接口参数应用到 DDS 配置中。
-
-**临时解决方案**：使用提供的辅助脚本或手动配置环境变量：
-
-#### 方法 1：使用辅助脚本（推荐）
+查看可用网络接口：
 
 ```bash
-# 终端 1：启动订阅者
-./example/lowcmd_test/run_with_network_interface.sh wwan0 subscriber
-
-# 终端 2：启动发布者
-./example/lowcmd_test/run_with_network_interface.sh wwan0 publisher
+ip addr show
 ```
 
-#### 方法 2：手动设置环境变量
+常见接口：
+- `eth0` - 有线网卡
+- `wlp2s0` - 无线网卡
+- `enp3s0` - 以太网
+- `tailscale0` - Tailscale VPN
+
+---
+
+## 📋 脚本说明
+
+### 核心脚本
+
+| 脚本 | 用途 | 使用场景 |
+|------|------|----------|
+| `run_test.sh` | 交互式测试菜单 | 同一台机器测试 |
+| `run_with_network_interface.sh` | 指定网络接口运行 | 跨机器通信（推荐） |
+| `setup_firewall.sh` | 配置防火墙 | 跨机器通信必需 |
+
+### 诊断工具
+
+| 工具 | 用途 |
+|------|------|
+| `diagnose_lan_communication.sh` | 完整诊断工具（推荐） |
+| `troubleshoot_network.sh` | 网络故障排查 |
+| `check_network.sh` | 基础网络检查 |
+
+### 使用示例
 
 ```bash
-# 绑定到特定网络接口（如 wwan0）
-export CYCLONEDDS_URI='<CycloneDDS><Domain><General><Interfaces><NetworkInterface name="wwan0"/></Interfaces></General></Domain></CycloneDDS>'
-./build/bin/lowcmd_publisher
-./build/bin/lowcmd_subscriber
+# 1. 诊断网络问题
+./diagnose_lan_communication.sh
+
+# 2. 故障排查（需要对方 IP）
+sudo ./troubleshoot_network.sh wlp2s0 192.168.1.101
+
+# 3. 配置防火墙
+sudo ./setup_firewall.sh
 ```
 
-详细信息请参考：[network_interface_issue.md](network_interface_issue.md)
+---
 
-## 扩展建议
+## 🔧 故障排查
 
-1. **添加 CRC 校验**: 实现真实的 CRC 计算函数
-2. **参数配置**: 通过配置文件或命令行参数设置控制参数
-3. **安全检查**: 添加关节角度、速度、力矩限制
-4. **轨迹规划**: 实现平滑的轨迹规划算法
-5. **状态反馈**: 结合 `rt/lowstate` 话题实现闭环控制
+### 问题 1：跨机器无法通信
 
-## 相关文件
+**快速诊断：**
 
-- 发布者源码: `lowcmd_publisher.cpp`
-- 订阅者源码: `lowcmd_subscriber.cpp`
-- CMake 配置: `CMakeLists.txt`
-- 消息定义: `include/unitree/idl/hg/LowCmd_.hpp`
-- 电机指令定义: `include/unitree/idl/hg/MotorCmd_.hpp`
+```bash
+./diagnose_lan_communication.sh
+```
+
+**常见原因：**
+
+1. ❌ 防火墙未配置
+   ```bash
+   sudo ./setup_firewall.sh
+   ```
+
+2. ❌ 只在一台机器配置了防火墙
+   ```bash
+   # 两台机器都要执行
+   sudo ./setup_firewall.sh
+   ```
+
+3. ❌ 网络不通
+   ```bash
+   ping <对方IP>
+   ```
+
+4. ❌ 路由器启用了 AP 隔离
+   - 登录路由器管理界面
+   - 关闭 "AP 隔离" 或 "客户端隔离"
+
+### 问题 2：组播不工作
+
+**症状：** 关闭防火墙才能通信
+
+**原因：** 防火墙阻止了组播（239.255.0.1）
+
+**解决：** 使用更新后的防火墙配置脚本
+
+```bash
+sudo ./setup_firewall.sh
+```
+
+脚本会自动配置：
+- DDS 端口（7400-7419/udp）
+- 组播地址（224.0.0.0/4）
+- 本地网段
+
+### 问题 3：程序无法找到
+
+**症状：** `./build/bin/lowcmd_publisher: No such file or directory`
+
+**原因：** 程序未编译或架构不匹配
+
+**解决：**
+
+```bash
+cd /mine/Code/unitree/unitree_sdk2
+./build.sh
+```
+
+编译产物位于：`build_<架构>/bin/`（如 `build_x86_64/bin/`）
+
+### 临时测试：关闭防火墙
+
+```bash
+# 两台机器都执行
+sudo ufw disable
+
+# 测试通信...
+
+# 测试完成后重新启用
+sudo ufw enable
+sudo ./setup_firewall.sh
+```
+
+---
+
+## 📚 详细文档
+
+### 核心文档
+
+| 文档 | 内容 |
+|------|------|
+| `docs/跨机器通信指南.md` | 完整的跨机器通信配置步骤 |
+| `docs/DDS配置说明.md` | CycloneDDS 配置详解 |
+| `docs/故障排查指南.md` | 常见问题和解决方案 |
+
+### 技术文档
+
+| 文档 | 内容 |
+|------|------|
+| `docs/网络接口问题说明.md` | 网络接口隔离原理 |
+| `docs/环境变量配置.md` | DDS 环境变量说明 |
+
+---
+
+## 🎯 最佳实践
+
+### 1. 开发流程
+
+```bash
+# 在开发机（x86_64）上开发
+./build.sh
+./run_test.sh  # 本地测试
+
+# 提交代码
+git commit && git push
+
+# 在目标设备（如 aarch64）上部署
+git pull
+./build.sh
+./run_with_network_interface.sh eth0 publisher
+```
+
+### 2. 测试流程
+
+**同一台机器：**
+```bash
+./run_test.sh
+```
+
+**跨机器：**
+```bash
+# 步骤 1：两台都配置防火墙
+sudo ./setup_firewall.sh
+
+# 步骤 2：先启动订阅者
+机器A: ./run_with_network_interface.sh wlp2s0 subscriber
+
+# 步骤 3：再启动发布者
+机器B: ./run_with_network_interface.sh wlp2s0 publisher
+```
+
+### 3. 诊断流程
+
+```bash
+# 1. 运行完整诊断
+./diagnose_lan_communication.sh
+
+# 2. 根据诊断结果修复问题
+
+# 3. 如果还是不通，查看详细日志
+sudo tcpdump -i wlp2s0 -n 'udp portrange 7400-7419' -v
+```
+
+---
+
+## 💡 提示
+
+1. **网络接口隔离**：在同一台机器上，DDS 会使用共享内存或 localhost，无法通过网络接口实现真正隔离。要测试网络隔离，必须在不同机器上运行。
+
+2. **防火墙配置**：跨机器通信时，两台机器都必须配置防火墙，缺一不可。
+
+3. **Tailscale VPN**：如果使用 Tailscale，需要使用 `quick_test_tailscale.sh` 脚本，因为 Tailscale 不支持组播。
+
+4. **多架构编译**：编译产物会根据系统架构保存到独立目录（`build_x86_64/`、`build_aarch64/`），避免相互覆盖。
+
+---
+
+## 🔗 快速链接
+
+- [项目主 README](../../README.md)
+- [架构支持说明](../../架构支持说明.md)
+- [GO2 示例文档](../../GO2_DEMO_README.md)
+
+---
+
+## ❓ 常见问题
+
+**Q: 为什么在同一台机器上测试时，网络接口参数无效？**
+
+A: DDS 在同一台机器上会自动使用共享内存或 localhost 优化，绕过网络接口。这是设计行为，不是 bug。
+
+**Q: 跨机器通信需要配置哪些东西？**
+
+A: 
+1. 两台机器都运行 `sudo ./setup_firewall.sh`
+2. 使用相同的网络接口类型（都用物理网卡或都用 VPN）
+3. 确保能互相 ping 通
+
+**Q: 如何验证通信成功？**
+
+A: 订阅者端会输出：
+```
+接收到 LowCmd 消息 #1
+时间戳: 1763797005795 ms
+...
+```
+
+发布者端会输出：
+```
+开始发布 LowCmd 消息...
+已发布 100 条消息
+已发布 200 条消息
+...
+```
+
+**Q: 编译产物在哪里？**
+
+A: `build_<架构>/bin/`（如 `build_x86_64/bin/`），或通过软链接 `build/bin/` 访问。
+
+---
+
+## 📧 支持
+
+如有问题，请查看：
+1. 运行 `./diagnose_lan_communication.sh` 进行自动诊断
+2. 查看详细文档：`docs/` 目录
+3. 检查防火墙配置：`sudo ufw status`
+4. 监控网络流量：`sudo tcpdump -i wlp2s0 -n 'udp portrange 7400-7419'`

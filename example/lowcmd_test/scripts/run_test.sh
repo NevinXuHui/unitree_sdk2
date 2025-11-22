@@ -4,7 +4,13 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SDK_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-BIN_DIR="$SDK_ROOT/build/bin"
+ARCH=$(uname -m)
+BIN_DIR="$SDK_ROOT/build_${ARCH}/bin"
+
+# 检查架构特定的构建目录是否存在，否则使用通用构建目录
+if [ ! -d "$BIN_DIR" ]; then
+    BIN_DIR="$SDK_ROOT/build/bin"
+fi
 
 echo "========================================"
 echo "LowCmd 发布订阅测试"

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CycloneDDS xmlns="https://cdds.io/config" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://cdds.io/config https://raw.githubusercontent.com/eclipse-cyclonedds/cyclonedds/master/etc/cyclonedds.xsd">
+  <Domain>
+    <General>
+      <!-- 网络接口配置 -->
+      <Interfaces>
+        <NetworkInterface name="eth10" priority="default" multicast="default"/>
+      </Interfaces>
+      
+      <!-- 组播配置 - 仅用于 SPDP (服务发现) -->
+      <AllowMulticast>spdp</AllowMulticast>
+      
+      <!-- 可选：启用详细日志用于调试 -->
+      <!-- <EnableExpensiveChecks>true</EnableExpensiveChecks> -->
+    </General>
+    
+    <!-- 可选：启用追踪日志用于调试 -->
+    <!--
+    <Tracing>
+      <Verbosity>finest</Verbosity>
+      <OutputFile>dds_eth10.log</OutputFile>
+    </Tracing>
+    -->
+  </Domain>
+</CycloneDDS>

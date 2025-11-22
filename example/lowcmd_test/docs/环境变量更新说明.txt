@@ -1,0 +1,130 @@
+===============================================
+CycloneDDS 环境变量更新总结
+===============================================
+
+更新时间: 2025-11-22
+更新原因: 统一环境变量格式，添加 AllowMulticast 配置
+
+===============================================
+标准格式
+===============================================
+
+旧格式（已废弃）：
+  export CYCLONEDDS_URI="<CycloneDDS><Domain><General><Interfaces><NetworkInterface name=\"eth10\" priority=\"default\" multicast=\"true\"/></Interfaces></General></Domain></CycloneDDS>"
+
+新格式（推荐）：
+  export CYCLONEDDS_URI='<CycloneDDS><Domain><General><AllowMulticast>spdp</AllowMulticast><Interfaces><NetworkInterface name="eth10" priority="default" multicast="default"/></Interfaces></General></Domain></CycloneDDS>'
+
+关键变化：
+  1. 添加 <AllowMulticast>spdp</AllowMulticast>
+  2. multicast="true" 改为 multicast="default"
+  3. 保留 priority="default" 属性
+
+===============================================
+已更新的文件
+===============================================
+
+✅ 脚本文件：
+  1. run_with_network_interface.sh  - 通用网络接口脚本（第41行）
+  2. run_with_eth10.sh              - eth10 专用脚本（第6行）
+  3. generate_dds_config.sh         - 配置生成器（第74和153行）
+
+✅ 配置文件：
+  1. cyclonedds_eth10.xml          - eth10 XML 配置
+
+✅ 文档文件：
+  1. README.md                     - 主文档（添加环境变量说明章节）
+  2. DDS配置说明.md               - DDS 配置详细指南
+  3. 环境变量标准格式.md         - 环境变量格式说明（新建）
+  4. 环境变量更新说明.txt        - 本文件（新建）
+
+✅ 工具脚本：
+  1. test_config.sh               - 配置测试工具（新建）
+
+===============================================
+配置参数说明
+===============================================
+
+<AllowMulticast>spdp</AllowMulticast>
+  - 仅在服务发现（SPDP）中使用组播
+  - 数据传输使用单播，减少网络流量
+  - 平衡性能和效率的最佳选择
+
+NetworkInterface 属性：
+  - name="<接口名>"           必需，网络接口名称
+  - priority="default"        可选，接口优先级
+  - multicast="default"       可选，组播设置
+
+===============================================
+不需要的环境变量
+===============================================
+
+❌ RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+
+原因：
+  - 这是 ROS 2 使用的变量
+  - unitree_sdk2 直接使用 CycloneDDS，不通过 ROS 2
+  - 设置此变量不会有任何效果
+
+===============================================
+使用方法
+===============================================
+
+方法 1：使用脚本（推荐）
+  ./run_with_network_interface.sh eth10 publisher
+  ./run_with_network_interface.sh eth10 subscriber
+
+方法 2：使用环境变量
+  export CYCLONEDDS_URI='<CycloneDDS><Domain><General><AllowMulticast>spdp</AllowMulticast><Interfaces><NetworkInterface name="eth10" priority="default" multicast="default"/></Interfaces></General></Domain></CycloneDDS>'
+  ../../build/bin/lowcmd_publisher
+
+方法 3：使用配置文件
+  export CYCLONEDDS_URI=file://$PWD/cyclonedds_eth10.xml
+  ../../build/bin/lowcmd_publisher
+
+方法 4：生成自定义配置
+  ./generate_dds_config.sh <接口名>
+  ./run_with_<接口名>.sh publisher
+
+===============================================
+测试配置
+===============================================
+
+测试环境变量格式是否正确：
+  ./test_config.sh eth10
+
+检查网络和防火墙：
+  sudo ./check_network.sh
+
+配置防火墙：
+  sudo ./setup_firewall.sh
+
+===============================================
+相关文档
+===============================================
+
+详细说明请查看：
+  - DDS配置说明.md           - 完整的 DDS 配置指南
+  - 环境变量标准格式.md     - 环境变量格式对比和说明
+  - 局域网通信问题解决方案.md - 故障排查指南
+  - network_interface_issue.md - 网络接口问题详解
+  - README.md                - 项目主文档
+
+===============================================
+验证更新
+===============================================
+
+1. 查看脚本配置：
+   cat run_with_network_interface.sh | grep "CYCLONEDDS_URI"
+
+2. 测试配置格式：
+   ./test_config.sh eth10
+
+3. 运行测试：
+   ./run_with_network_interface.sh eth10 subscriber
+   ./run_with_network_interface.sh eth10 publisher
+
+4. 监控网络流量：
+   sudo tcpdump -i eth10 -n 'udp portrange 7400-7419'
+
+===============================================

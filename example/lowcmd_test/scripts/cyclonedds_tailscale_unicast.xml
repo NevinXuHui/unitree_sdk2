@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CycloneDDS xmlns="https://cdds.io/config" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://cdds.io/config https://raw.githubusercontent.com/eclipse-cyclonedds/cyclonedds/master/etc/cyclonedds.xsd">
+  <Domain>
+    <General>
+      <!-- 禁用组播，Tailscale VPN 不支持组播 -->
+      <AllowMulticast>false</AllowMulticast>
+      
+      <!-- 网络接口配置 -->
+      <Interfaces>
+        <NetworkInterface name="tailscale0" priority="default" multicast="false"/>
+      </Interfaces>
+      
+      <!-- 启用详细日志用于调试（可选） -->
+      <!-- 
+      <EnableExpensiveChecks>true</EnableExpensiveChecks>
+      -->
+    </General>
+    
+    <Discovery>
+      <!-- 单播发现配置 -->
+      <ParticipantIndex>auto</ParticipantIndex>
+      
+      <!-- 可选：手动指定对等节点地址 -->
+      <!-- 如果自动发现失败，可以手动添加远程机器的 IP -->
+      <!--
+      <Peers>
+        <Peer address="100.81.1.100"/>
+        <Peer address="100.81.1.101"/>
+      </Peers>
+      -->
+    </Discovery>
+    
+    <!-- 可选：启用追踪日志用于调试 -->
+    <!--
+    <Tracing>
+      <Verbosity>finest</Verbosity>
+      <OutputFile>dds_tailscale.log</OutputFile>
+    </Tracing>
+    -->
+  </Domain>
+</CycloneDDS>

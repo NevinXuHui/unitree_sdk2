@@ -28,10 +28,16 @@ if ! ip addr show "$NETWORK_INTERFACE" &> /dev/null; then
     exit 1
 fi
 
-# 获取脚本所在目录
+# 获取脚本所在目录和架构
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SDK_ROOT="$SCRIPT_DIR/../.."
-BIN_DIR="$SDK_ROOT/build/bin"
+ARCH=$(uname -m)
+BIN_DIR="$SDK_ROOT/build_${ARCH}/bin"
+
+# 检查架构特定的构建目录是否存在，否则使用通用构建目录
+if [ ! -d "$BIN_DIR" ]; then
+    BIN_DIR="$SDK_ROOT/build/bin"
+fi
 
 # 配置 CycloneDDS 使用指定的网络接口
 # 注意：
