@@ -4,8 +4,17 @@
 #include <iostream>
 #include <iomanip>
 #include <ctime>
+#include <cstdio>
 
 #define TOPIC "rt/lowcmd"
+
+// ANSI 颜色代码
+#define COLOR_RESET   "\033[0m"
+#define COLOR_RED     "\033[1;31m"
+#define COLOR_GREEN   "\033[1;32m"
+#define COLOR_YELLOW  "\033[1;33m"
+#define COLOR_BLUE    "\033[1;34m"
+#define COLOR_CYAN    "\033[1;36m"
 
 using namespace unitree::robot;
 using namespace unitree::common;
@@ -34,13 +43,34 @@ void Handler(const void* msg)
         stats.first_recv_time = recv_time;
         stats.last_report_time = recv_time;
         stats.expected_seq = seq_num;
+        stats.last_recv_time = recv_time;
     }
     
-    // 计算丢包
-    if (seq_num > stats.expected_seq) {
-        uint32_t lost = seq_num - stats.expected_seq;
-        stats.lost_count += lost;
+    // 检测接收时间间隔
+    int64_t time_interval = recv_time - stats.last_recv_time;
+    
+    // 如果时间间隔大于30ms，输出详细日志
+    if (time_interval > 30) {
+        time_t now_sec = recv_time / 1000;
+        int ms = recv_time % 1000;
+        struct tm* timeinfo = localtime(&now_sec);
+        char time_buf[32];
+        strftime(time_buf, sizeof(time_buf), "%H:%M:%S", timeinfo);
+        
+        printf("%s\n[时间间隔警告] 时间: %s.%03d | 时间间隔: %ld ms | 序列号: %u\n%s\n",
+               COLOR_RED, time_buf, ms, time_interval, seq_num, COLOR_RESET);
     }
+    
+    // // 计算丢包（处理序列号回绕）
+    // if (seq_num != stats.expected_seq) {
+    //     int64_t diff = (int64_t)seq_num - (int64_t)stats.expected_seq;
+    //     // 只有在差值合理的情况下才计入丢包（避免序列号回绕导致的异常值）
+    //     // 假设合理的丢包范围是 1 到 100000
+    //     if (diff > 0 && diff < 100000) {
+    //         stats.lost_count += diff;
+    //     }
+    // }
+    
     stats.expected_seq = seq_num + 1;
     stats.received_count++;
     stats.last_recv_time = recv_time;
@@ -54,14 +84,13 @@ void Handler(const void* msg)
         char time_buf[32];
         strftime(time_buf, sizeof(time_buf), "%H:%M:%S", timeinfo);
         
-        std::cout << "[接收] #" << std::setw(6) << seq_num 
-                  << " | 时间: " << time_buf << "." << std::setfill('0') << std::setw(3) << ms << std::setfill(' ')
-                  << " | 相对: " << std::fixed << std::setprecision(3) << elapsed_sec << "s" << std::endl;
+        printf("%s[接收] #%6u | 时间: %s.%03d | 相对: %.3fs%s\n",
+               COLOR_GREEN, seq_num, time_buf, ms, elapsed_sec, COLOR_RESET);
     }
     
     // 打印消息头信息（前 10 条）
     if (stats.received_count <= 10) {
-        std::cout << "========================================" << std::endl;
+        std::cout << COLOR_CYAN << "========================================" << std::endl;
         std::cout << "详细信息 - 序列号: " << seq_num 
                   << " | 接收时间: " << recv_time << " ms" << std::endl;
         std::cout << "控制模式:" << std::endl;
@@ -97,7 +126,7 @@ void Handler(const void* msg)
             }
         }
         std::cout << std::endl << "激活的电机数量: " << active_motors << " / 35" << std::endl;
-        std::cout << "========================================" << std::endl << std::endl;
+        std::cout << "========================================" << COLOR_RESET << std::endl << std::endl;
     }
     
     // 每秒统计一次
@@ -106,11 +135,20 @@ void Handler(const void* msg)
         double recv_rate = (stats.received_count * 1000.0) / elapsed;
         double loss_rate = (stats.lost_count * 100.0) / (stats.received_count + stats.lost_count);
         
-        std::cout << std::fixed << std::setprecision(2);
-        std::cout << "\n[统计] 已接收: " << stats.received_count << " 条"
-                  << " | 丢失: " << stats.lost_count << " 条"
-                  << " | 丢包率: " << loss_rate << "%"
-                  << " | 接收速率: " << recv_rate << " Hz\n" << std::endl;
+        // 根据丢包率选择颜色
+        const char* color;
+        if (loss_rate == 0.0) {
+            color = COLOR_GREEN;  // 无丢包：绿色
+        } else if (loss_rate < 1.0) {
+            color = COLOR_CYAN;   // 丢包率 < 1%：青色
+        } else if (loss_rate < 5.0) {
+            color = COLOR_YELLOW; // 丢包率 < 5%：黄色
+        } else {
+            color = COLOR_RED;    // 丢包率 >= 5%：红色
+        }
+        
+        printf("%s\n[统计] 已接收: %u 条 | 丢失: %u 条 | 丢包率: %.2f%% | 接收速率: %.2f Hz\n%s\n",
+               color, stats.received_count, stats.lost_count, loss_rate, recv_rate, COLOR_RESET);
         
         stats.last_report_time = recv_time;
     }

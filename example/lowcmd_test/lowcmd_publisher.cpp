@@ -6,7 +6,7 @@
 #include <cmath>
 #include <ctime>
 
-#define TOPIC "rt/lowcmd"
+#define TOPIC "rt/lowcmd1"
 
 using namespace unitree::robot;
 using namespace unitree::common;
